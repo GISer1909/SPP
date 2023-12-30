@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link type="text/css" rel="stylesheet" href="./ol.css" />
+    <script type="text/javascript" src="./ol.js"></script>
+    <script type="text/javascript" src="./qwebchannel.js"></script>
+    <script type="text/javascript" src="./turf.js"></script>
+    <script type="text/javascript" src="./ol-ext.js"></script>
+    <link type="text/css" rel="stylesheet" href="./ol-ext.css" />
+    <title>Document</title>
+    <style>
+      html,
+      body,
+      .container {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+     
+    </style>
+  </head>
+  <body>
+    <div class="container"><div class="container" id="map"></div></div>
+  </body>
+  <script>
+    var map = new ol.Map({
+      target: "map",
+      layers: [
+        new ol.layer.Tile({
+          //{a-c}.tile.osm.org/{z}/{x}/{y}.png
+          source: new ol.source.XYZ({
+            url: "http://{a-c}.tile.osm.org/{z}/{x}/{y}.png",
+          }),
+        }),
+      ],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([37.41, 8.82]),
+        zoom: 4,
+      }),
+    });
+    //比例尺
+    var scaleLineControl = new ol.control.ScaleLine({
+      units: "metric",
+      bar: true,
+      steps: 4,
+      text: true,
+      minWidth: 140,
+    });
+    map.addControl(scaleLineControl);
+
+    function showOnMap(bl) {
+      //36.399411,127.374802;36.399411,127.374801;36.399414,127.374800;36.399415,127.374799;36.399414,127.374798;36.399413,127.374801;36.399414,127.374797;36.399409,127.374795;
+      //计算一组点的中心点
+      var points = bl.split(";");
+      //剔除空值
+      points = points.filter(function (item) {
+        return item != "";
+      });
+      var features = turf.featureCollection(
+        points.map(function (item) {
+          var p = item.split(",");
+          return turf.point([Number(p[1]), Number(p[0])]);
+        })
+      );
+      var center = turf.center(features);
+      var centerPoint = new ol.Feature({
+        geometry: new ol.geom.Point(
+          ol.proj.fromLonLat([
+            center.geometry.coordinates[0],
+            center.geometry.coordinates[1],
+          ])
+        ),
+      });
+      var vectorSource = new ol.source.Vector({
+        features: [centerPoint],
+      });
+      var vectorLayer = new ol.layer.Vector({
+        source: vectorSource,
+        //高德地图图标
+        style: new ol.style.Style({
+          image: new ol.style.Icon({
+            src: "./mark_b.png",
+            anchor: [0.5, 1],
+          }),
+        }),
+      });
+      map.addLayer(vectorLayer);
+      //flyto
+      map.getView().animate({
+        center: ol.proj.fromLonLat([
+          center.geometry.coordinates[0],
+          center.geometry.coordinates[1],
+        ]),
+        zoom: 16,
+        duration: 2000,
+      });
+    }
+  </script>
+</html>
